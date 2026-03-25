@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  sessions     GameSession[]
+  criteria     Criterion[]
+  votesGiven   Vote[]       @relation("VoterVotes")
+  votesReceived Vote[]      @relation("CandidateVotes")
+}
+
+model GameSession {
+  id          String   @id @default(cuid())
+  userId      String
+  currentRound Int     @default(0)
+  hits        Int      @default(0)
+  status      String   @default("in_progress")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id])
+  rounds Round[]
+}
+
+model Round {
+  id          String   @id @default(cuid())
+  sessionId   String
+  roundNumber Int
+  ideaText    String
+  argument1   String   @default("")
+  argument2   String   @default("")
+  argument3   String   @default("")
+  aiResponse  String   @default("{}")
+  result      String   @default("pending")
+  createdAt   DateTime @default(now())
+
+  session GameSession @relation(fields: [sessionId], references: [id])
+}
+
+model Criterion {
+  id        String   @id @default(cuid())
+  userId    String
+  text      String
+  roundId   String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Vote {
+  id          String   @id @default(cuid())
+  voterId     String
+  candidateId String
+  createdAt   DateTime @default(now())
+
+  voter     User @relation("VoterVotes", fields: [voterId], references: [id])
+  candidate User @relation("CandidateVotes", fields: [candidateId], references: [id])
+
+  @@unique([voterId, candidateId])
+}
